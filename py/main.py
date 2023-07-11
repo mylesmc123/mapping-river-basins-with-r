@@ -126,7 +126,7 @@ def CreateMap(country, continent, res):
                              #  column='HYBAS_ID',
                              column='MAIN_RIV',
                              cmap=colormaps['twilight'],
-                             linewidth=country_river_basin['width']*1.5,
+                             linewidth=country_river_basin['width'],
                              #  edgecolor='black',
                              #  alpha=country_river_basin['width'],
                              categorical=True,

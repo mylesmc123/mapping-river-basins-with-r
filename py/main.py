@@ -17,7 +17,7 @@ res = resolution_choices[4]
 # Choose country from gisco code: "CNTR_ID"
 # country = "US"
 # EL=Greece, Can always lookup via world_country_borders geojson linked below.
-country = "US"
+country = "CA"
 continent = "na"  # na=North America, sa=South America, au=Australia, eu=Europe
 
 # End of Inputs
@@ -126,7 +126,7 @@ def CreateMap(country, continent, res):
                              #  column='HYBAS_ID',
                              column='MAIN_RIV',
                              cmap=colormaps['twilight'],
-                             linewidth=country_river_basin['width']*3,
+                             linewidth=country_river_basin['width']*1.5,
                              #  edgecolor='black',
                              #  alpha=country_river_basin['width'],
                              categorical=True,

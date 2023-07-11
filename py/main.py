@@ -1,8 +1,8 @@
-import json
 import os
 import requests
 import zipfile
 import geopandas as gpd
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import colormaps, pyplot as plt
 
@@ -23,37 +23,24 @@ continent = "na"  # na=North America, sa=South America, au=Australia, eu=Europe
 # End of Inputs
 
 
-def getCountryData(apikey):
-    url = 'https://parseapi.back4app.com/classes/Continentscountriescities_Country?limit=1000&order=name&include=continent,shape&keys=name,emoji,code,capital,continent,continent.name,continent.code,shape,shape.geoJson'
-    headers = {
-        # This is your app's application id
-        'X-Parse-Application-Id': 'J8FCkr5jCsFdQ906OqB9bUm1QZdbiXhXgYiGz7U3',
-        # This is your app's REST API key
-        'X-Parse-REST-API-Key': apikey
-    }
-    data = json.loads(requests.get(url, headers=headers).content.decode(
-        'utf-8'))  # Here you have the data that you need
-    return data
+def CreateMap(country, continent, res):
+    print("Getting World's Country Borders")
+    world_country_borders = gpd.read_file(
+        f"https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_{res}_2020_4326.geojson")
+    print(f"Filtering Country Border for: {country}")
+    country_border = world_country_borders[world_country_borders["CNTR_ID"] == country]
+    if len(country_border) != 1:
+        raise ValueError(
+            f"Country code: {country} - May be incorrect check world_country_borders for a correct 'CNTR_ID'.")
+    country_name = country_border.NAME_ENGL.values[0]
 
-
-def CreateMap(country_name, country_border, continent):
-    # print("Getting World's Country Borders")
-    # world_country_borders = gpd.read_file(
-    #     f"https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_{res}_2020_4326.geojson")
-    # print(f"Filtering Country Border for: {country}")
-    # country_border = world_country_borders[world_country_borders["CNTR_ID"] == country]
-    # if len(country_border) != 1:
-    #     raise ValueError(
-    #         f"Country code: {country} - May be incorrect check world_country_borders for a correct 'CNTR_ID'.")
-    # country_name = country_border.NAME_ENGL.values[0]
-
-    # # Clip US border to just CONUS - excludes Alaska, etc.
-    # if country == "US":
-    #     country_border = country_border.clip_by_rect(-140, 20, -50, 50)
-    #     # clip_by_rect returns a geoseries, so turning back to a GDF
-    #     country_border = gpd.GeoDataFrame(
-    #         geometry=gpd.GeoSeries(country_border))
-    #     country_border.plot()
+    # Clip US border to just CONUS - excludes Alaska, etc.
+    if country == "US":
+        country_border = country_border.clip_by_rect(-140, 20, -50, 50)
+        # clip_by_rect returns a geoseries, so turning back to a GDF
+        country_border = gpd.GeoDataFrame(
+            geometry=gpd.GeoSeries(country_border))
+        country_border.plot()
 
     # Get Continent-wide Watershed Basin Boundaries
     print(f"Getting Watershed Basin for Continent: {continent}")
@@ -69,23 +56,12 @@ def CreateMap(country_name, country_border, continent):
 
     with zipfile.ZipFile(file_name, 'r') as zip_ref:
         zip_ref.extractall()
-        zip_contents = zipfile.ZipFile.namelist(zip_ref)
 
     # Intersect Basin with only the wanted Country Boundary.
     print("Intersecting Country Border with Continent Watershed Basin.")
     continent_basin = gpd.read_file(file_name.split(".")[0]+".shp")
     country_basin = gpd.overlay(
         country_border, continent_basin, how='intersection')
-
-    # Cleanup Basins
-    if os.path.exists(file_name):
-        os.remove(file_name)
-    for f in zip_contents:
-        if os.path.exists(f):
-            try:
-                os.remove(f)
-            except:
-                pass
 
     # Get Rivers
     print("Getting Continent Rivers.")
@@ -102,7 +78,6 @@ def CreateMap(country_name, country_border, continent):
 
     with zipfile.ZipFile(file_name, 'r') as zip_ref:
         zip_ref.extractall()
-        zip_contents = zipfile.ZipFile.namelist(zip_ref)
 
     continent_rivers = gpd.read_file(os.path.join(
         f"HydroRIVERS_v10_{continent}_shp", f"HydroRIVERS_v10_{continent}.shp"))
@@ -111,22 +86,6 @@ def CreateMap(country_name, country_border, continent):
     print("Intersecting Rivers with Country-wide watershed basin.")
     country_river_basin = gpd.overlay(
         continent_rivers, country_basin, how='intersection')
-
-    # Cleanup Rivers
-    if os.path.exists(file_name):
-        os.remove(file_name)
-    for f in zip_contents:
-        if os.path.exists(f):
-            try:
-                os.remove(f)
-            except:
-                pass
-    unzip_directory = file_name.replace(".", "_")
-    if os.path.exists(unzip_directory):
-        try:
-            os.rmdir(unzip_directory)
-        except:
-            pass
 
     # RIVER WIDTH config
     country_river_basin['ORD_FLOW'].unique()
@@ -176,35 +135,11 @@ def CreateMap(country_name, country_border, continent):
     ax.set_axis_off()
 
     print("Save Plot")
-    fig.savefig(f'{country_name}-river-basins.png', dpi=600,
+    fig.savefig(f'{country}-river-basins.png', dpi=600,
                 bbox_inches='tight', pad_inches=0, transparent=True)
 
     # End CreateMap Function
 
 
 # Create Map
-
-with open('py/api-key.txt', "r") as apikeyfile:
-    apikey = apikeyfile.read()
-
-country_data = getCountryData(apikey)
-
-for country in country_data['results']:
-    print(country['name'], country['continent']['code'].lower())
-    country_name = country['name']
-    continent = country['continent']['code'].lower()
-
-    # Skipping all countries in Oceania
-    if continent == "oc":
-        continue
-
-    country_border = gpd.read_file(country['shape']['geoJson'])
-
-    # Clip US border to just CONUS - excludes Alaska, etc.
-    if country['code'] == "US":
-        country_border = country_border.clip_by_rect(-140, 20, -50, 50)
-        # clip_by_rect returns a geoseries, so turning back to a GDF
-        country_border = gpd.GeoDataFrame(
-            geometry=gpd.GeoSeries(country_border))
-
-    CreateMap(country_name, country_border, continent)
+CreateMap(country, continent, res)

@@ -120,8 +120,8 @@ def CreateMap(country, continent, res):
 
     # PLOT
     print("Setup Plot")
-    plt.title(country_name, bbox=dict(facecolor='silver', alpha=0.2))
     fig, ax = plt.subplots(figsize=(7, 7.75))
+    plt.title(country_name, bbox=dict(facecolor='silver', alpha=0.2))
     country_river_basin.plot(ax=ax,
                              #  column='HYBAS_ID',
                              column='MAIN_RIV',

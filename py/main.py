@@ -128,7 +128,7 @@ def CreateMap(country, continent, res):
                              cmap=colormaps['twilight'],
                              linewidth=country_river_basin['width'],
                              #  edgecolor='black',
-                             #  alpha=country_river_basin['width'],
+                             alpha=country_river_basin['width'],
                              categorical=True,
                              #  legend=True,
                              )
@@ -136,7 +136,7 @@ def CreateMap(country, continent, res):
 
     print("Save Plot")
     fig.savefig(f'{country}-river-basins.png', dpi=600,
-                bbox_inches='tight', pad_inches=0, transparent=True)
+                bbox_inches='tight', pad_inches=0.2, transparent=True)
 
     # End CreateMap Function
 
